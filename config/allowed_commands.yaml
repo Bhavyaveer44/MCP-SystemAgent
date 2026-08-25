@@ -1,0 +1,28 @@
+# each entry: binary name, and regex the FULL joined args string must match.
+# if a command isn't listed here, it's rejected before regex is even checked.
+
+commands:
+  git:
+    pattern: '^(status|log|diff|add|commit -m ".+"|push|pull|branch|checkout \S+)$'
+    requires_confirmation: [commit, push, checkout]
+    read_only: [status, log, diff, branch]
+
+  ls:
+    pattern: '^(-\w+\s*)*(\S+)?$'
+    requires_confirmation: []
+    read_only: [".*"]
+
+  cat:
+    pattern: '^\S+$'
+    requires_confirmation: []
+    read_only: [".*"]
+
+  npm:
+    pattern: '^run \S+$'
+    requires_confirmation: [".*"]
+    read_only: []
+
+  pytest:
+    pattern: '^(-\w+\s*)*(\S+)?$'
+    requires_confirmation: []
+    read_only: [".*"]
