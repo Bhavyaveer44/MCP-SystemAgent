@@ -7,13 +7,14 @@ WORKSPACE.mkdir(exist_ok=True)
 class PathEscapeError(Exception):
     pass
 
-
 def _safe_path(relative_path: str) -> Path:
     """
-    Resolves a user-supplied relative path against WORKSPACE and
-    guarantees the result is still inside WORKSPACE.
+    Treat any input as workspace-relative: strip leading slashes
+    ('/note.txt' -> 'note.txt'), default empty to '.', then resolve
+    and verify the result is still inside WORKSPACE.
     """
-    candidate = (WORKSPACE / relative_path).resolve()
+    cleaned = (relative_path or ".").strip().lstrip("/\\") or "."
+    candidate = (WORKSPACE / cleaned).resolve()
     if not candidate.is_relative_to(WORKSPACE):
         raise PathEscapeError(f"'{relative_path}' escapes the workspace jail")
     return candidate
