@@ -8,12 +8,10 @@ class PathEscapeError(Exception):
     pass
 
 def _safe_path(relative_path: str) -> Path:
-    """
-    Treat any input as workspace-relative: strip leading slashes
-    ('/note.txt' -> 'note.txt'), default empty to '.', then resolve
-    and verify the result is still inside WORKSPACE.
-    """
-    cleaned = (relative_path or ".").strip().lstrip("/\\") or "."
+    cleaned = (relative_path or ".").strip().replace("\\", "/").lstrip("/")
+    if cleaned == "workspace" or cleaned.startswith("workspace/"):
+        cleaned = cleaned[len("workspace"):].lstrip("/")
+    cleaned = cleaned or "."
     candidate = (WORKSPACE / cleaned).resolve()
     if not candidate.is_relative_to(WORKSPACE):
         raise PathEscapeError(f"'{relative_path}' escapes the workspace jail")
@@ -25,6 +23,16 @@ def read_file(relative_path: str) -> str:
     if not path.is_file():
         raise FileNotFoundError(f"{relative_path} not found")
     return path.read_text()
+
+
+def read_files(relative_paths: list[str]) -> str:
+    parts = []
+    for p in relative_paths:
+        try:
+            parts.append(f"--- {p} ---\n{read_file(p)}")
+        except Exception as e:
+            parts.append(f"--- {p} ---\nERROR: {type(e).__name__}: {e}")
+    return "\n\n".join(parts)
 
 
 def write_file(relative_path: str, content: str) -> str:

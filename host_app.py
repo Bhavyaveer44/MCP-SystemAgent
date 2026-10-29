@@ -12,6 +12,16 @@ SERVER_PARAMS = StdioServerParameters(
 
 MODEL = "llama3.2:latest"
 
+SYSTEM_PROMPT = (
+    "You are a system automation agent. Call exactly one matching tool. "
+    "create/write -> write_file. read ONE file -> read_file. read TWO OR "
+    "MORE files -> read_files. list/show files -> list_dir with '.'. "
+    "delete -> delete_file. Paths are bare filenames like 'notes.txt': no "
+    "'workspace/', no leading '/', no '..'. Never invent paths or files "
+    "the user did not name. After a tool returns, reply with one short "
+    "sentence."
+)
+
 
 def mcp_tools_to_ollama_format(mcp_tools) -> list[dict]:
     """
@@ -42,20 +52,6 @@ async def run_agent_loop(session: ClientSession):
     print(f"Connected. {len(ollama_tools)} tools available: "
           f"{[t['function']['name'] for t in ollama_tools]}\n")
 
-    messages = [
-        {
-            "role": "system",
-            "SYSTEM_PROMPT": (
-                "You are a system automation agent. For every file or shell request, "
-                "call exactly the tool that matches the request: 'create/write' means "
-                "write_file, 'read' means read_file, 'list' means list_dir, and any "
-                "git/ls/cat/npm/pytest command means run_command. Use relative paths "
-                "like 'notes.txt', never a leading '/'. Use '.' for the workspace root. "
-                "After a tool returns, reply with one short sentence stating the result."
-            ),
-        }
-    ]
-
     while True:
         user_input = input("You: ").strip()
         if user_input.lower() in ("exit", "quit"):
@@ -76,16 +72,22 @@ async def run_agent_loop(session: ClientSession):
                     text = "DENIED: user declined this command."
             print(f"{text}\n")
             continue
-        
+
+        low = user_input.lower()
+        if low in ("ls", "list", "list files", "list all files in directory"):
+            result = await session.call_tool("list_dir", {"relative_path": "."})
+            print("".join(b.text for b in result.content if hasattr(b, "text")) + "\n")
+            continue
+
         messages = [
-            {"role": "system", "content": "SYSTEM_PROMPT"},
+            {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_input},
         ]
 
         # This inner loop handles the case where the model wants to call
         # MULTIPLE tools in sequence before giving a final text answer.
 
-        last_tool_result=""
+        last_tool_result = ""
 
         while True:
             response = ollama.chat(model=MODEL, messages=messages, tools=ollama_tools)
@@ -124,7 +126,7 @@ async def run_agent_loop(session: ClientSession):
                         result_text = "DENIED: user declined this command."
 
                 print(f"  [tool result] {result_text[:200]}")
-                last_tool_result=result_text
+                last_tool_result = result_text
 
 
 async def main():

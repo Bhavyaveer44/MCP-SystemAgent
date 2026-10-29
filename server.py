@@ -7,9 +7,19 @@ mcp = FastMCP("system-automation-agent")
 
 @mcp.tool()
 def read_file(relative_path: str) -> str:
-    """Read the contents of a file inside the workspace."""
+    """Read ONE file. Pass just the filename, e.g. "notes.txt". For two or
+    more files use read_files instead."""
     try:
         return file_ops.read_file(relative_path)
+    except Exception as e:
+        return f"ERROR: {type(e).__name__}: {e}"
+
+
+@mcp.tool()
+def read_files(relative_paths: list[str]) -> str:
+    """Read several files at once. Example: ["notes.txt", "note.txt"]."""
+    try:
+        return file_ops.read_files(relative_paths)
     except Exception as e:
         return f"ERROR: {type(e).__name__}: {e}"
 
@@ -25,7 +35,9 @@ def write_file(relative_path: str, content: str) -> str:
 
 @mcp.tool()
 def list_dir(relative_path: str = ".") -> str:
-    """List files and folders inside a directory in the workspace."""
+    """List the files in a workspace folder. Use "." to list all files in the
+    workspace. Use this ONLY when asked to list or show files, never to read
+    one."""
     try:
         return str(file_ops.list_dir(relative_path))
     except Exception as e:
@@ -34,7 +46,8 @@ def list_dir(relative_path: str = ".") -> str:
 
 @mcp.tool()
 def delete_file(relative_path: str) -> str:
-    """Delete a file inside the workspace. Irreversible — use carefully."""
+    """Delete one file. Pass just the filename, e.g. "notes.txt". Never
+    include "workspace/" or "/" in the path."""
     try:
         return file_ops.delete_file(relative_path)
     except Exception as e:

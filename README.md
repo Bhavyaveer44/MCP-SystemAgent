@@ -33,6 +33,7 @@ A local agent that turns natural-language commands into file and shell operation
 | Tool | Description |
 |---|---|
 | `read_file` | Read a file in the workspace |
+| `read_files` | Read multiple files in one request |
 | `write_file` | Create or overwrite a file in the workspace |
 | `list_dir` | List a workspace directory |
 | `delete_file` | Delete a workspace file |
@@ -40,7 +41,7 @@ A local agent that turns natural-language commands into file and shell operation
 
 ## Security model
 
-- **Path jail:** all paths are resolved with `Path.resolve()` and checked with `is_relative_to(WORKSPACE)`, so `../` traversal is rejected.
+- **Path jail:** all paths are resolved with `Path.resolve()` and checked with `is_relative_to(WORKSPACE)`, so `../` traversal is rejected. A leading `workspace/` prefix is tolerated.
 - **Allowlist:** `config/allowed_commands.yaml` defines permitted binaries, and a regex must fully match each one's arguments. Anything else is rejected, never sanitized.
 - **No shell:** commands run via `subprocess.run([binary, *args])`, never `shell=True`, so `;`, `&&`, and `$()` are not interpreted.
 - **Confirmation gate:** mutating commands (e.g. `git commit`, `git push`) print the exact command and wait for a `y/N` before running.
